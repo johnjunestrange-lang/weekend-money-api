@@ -1,11 +1,17 @@
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+export const config = { runtime: 'edge' };
 
-  if (req.method === 'OPTIONS') return res.status(200).end();
+export default async function handler(req) {
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
 
-  const { skills, time, goal } = req.body;
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  const { skills, time, goal } = await req.json();
 
   const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
@@ -30,5 +36,8 @@ export default async function handler(req, res) {
 
   const data = await response.json();
   const text = data.choices?.[0]?.message?.content || 'Could not generate plan. Please try again.';
-  return res.status(200).json({ result: text });
+
+  return new Response(JSON.stringify({ result: text }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+  });
 }
